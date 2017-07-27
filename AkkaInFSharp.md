@@ -13,13 +13,14 @@ I work at __[Precast Software Engineering](http://www.precast-software.com)__. W
 
 
 #### PLANBAR
-Planbar is a CAD specialized for precast. It is mostly developed in C++, but like most 
+Planbar is a CAD specialized for precast. It is mostly developed in C++, but like many older applications out there it has amassed a large number of languages and technologies. C transpiled from FORTRAN, actual C, C++ used like C, actual C++, C#, MFC, Winforms, WPF, ... You can see it's history in it's different layers, beautiful like the rings in an old tree stump.
 
 
 #### TIM
 The Technical Information Manager is a SQL Server based work-preparation program.
-It is mostly written in C#, with small pieces of C++, and lately some small new pieces of F#.
+It is mostly written in C#, with small pieces of C++, and lately some small new pieces of F#.  
 I work mostly on TIM.
+
 
 #### Status Quo
 TIM is a client program that stores the data in the database. It is (supposedly) multi-user capable; that is, multiple users can connect to the same database and work in parallel.
@@ -50,17 +51,17 @@ What the service should do was relatively clear, so the question was which techn
 4) MessageQueue, for example RabbitMq
 5) Actor, Akka.net
 
-So why choose Akka.net and not
+So why choose Akka.net and not ...
 
 1) WCF
 
-We already use WCF to provide Webservices that external systems can call. So we had some knowledge about it
+We already use WCF to provide Webservices that external systems can call. So we had some knowledge about it.
 
-WCF for internal communication aint that bad. You define your Service Contracts (interfaces), your Data Contracts (POCOs) and WCF handles the serialization / autogenerates the proxies.
+WCF for internal communication aint actually that bad. You define your Service Contracts (interfaces), your Data Contracts (POCOs) and WCF handles the serialization / autogenerates the proxies.
 
 But WCF is _really_ complex. You need to configure it with an arcane syntax (Bindings?) in xml in your app.config. If something goes wrong, good luck.
 
-Also, the future of WCF does not seem that clear. Microsoft seems to focus on REST.
+Also, the future of WCF does not seem that clear. Microsoft focuses on REST; they still provide a client library for UWP, but I haven't heard any news about WCF Servers.
 
 2) REST
 
@@ -82,7 +83,7 @@ To be honest, I didn't actually do much research on this technology. I would be 
 Actors are a cool concept. They take care of threading issues and enable easy concurrency. It seemed easy to transform the actor model (mailboxes and messages) into a RPC framework.
 The biggest upside was that Actors are inherently peer-to-peer. The locking stuff is client-server, where all requests are initiated by the client, but we already had ideas where two-way communication would be nice to have or required. 
 
-I had a little bit of experience with Actors, from when I played around with MBrace (which I would like to also write a small post about) and [Thespian](https://github.com/mbraceproject/Thespian). I would have used Thespian again, but the Nessos guys stopped working on it and officially recommend Akka.net.
+I had a little bit of experience with Actors, from when I played around with MBrace (which I would like to also write a small post about) and [Thespian](https://github.com/mbraceproject/Thespian). I would have used Thespian again, but the Nessos guys stopped working on it and recommend Akka.net.
 
 
 
@@ -99,28 +100,57 @@ I coded up an actor and a message type, started two processes and .... - nothing
 Long story short, Akka.net uses a Json.net based serializer by default.  
 That serializer doesn't handle unions.  
 Instead of throwing, it just silently swallowed the messages.  
-¯\_(ツ)_/¯
+``¯\_(ツ)_/¯``
 
 ### Custom FsPickler based serializer
 
 I'm not the first to notice that, go and read https://github.com/akkadotnet/akka.net/issues/1534 and a few other issues.
 So I need a custom serializer? FsPickler it is. Almost.
 
-I didn't want to change the root serializer, but only the serializer for my messages. It would probably have worked, but I didn't want another case of mysteriously disappearing issues.
+I didn't want to change the root serializer, but only the serializer for my messages. It would probably have worked, but I didn't want another case of mysteriously disappearing messages.
 
 You can configure your serializer in the HOCON config per message-type. I didn't want to have to explicitly include all my different message types, so I just created a tagging interface and attached that to all my top-level messages. Yes, that means if I create a new message type and forget that interface, the message silently disappers. But it would be boring if there was nothing to improve for the future.
 
 So I just subclassed the Akka Serializer base class, implemented Serialize and Deserialize with FsPickler, and - well it didn't work.
 
-I need to pass around Akka objects (mostly IActorRef) nested inside my type. FsPickler complained that they are not serializable.  
+I need to pass around Akka objects (mostly IActorRef) nested inside my types. FsPickler complained that the actor ref is not serializable.  
 So time to look up how the default Json serializer handles that.
 
 Short story short, there are two interfaces, ``ISurrogated`` and ``ISurrogate``. At serialization time you call ``ISurrogated.ToSurrogate``, which returns an ``ISurrogate``. This can be trivially serialized. At deserialization time, you do the same dance the other way around with ``FromSurrogate``.
 
 So I created a pickler, which does that, and registered it to ``ISurrogated``. When I then restarted my app, FsPickler complained that the Akka object is not serializable. What?
 
-Turns out, FsPickler only takes concrete types into account when trying to find a pickler. So me registering the interface did nothing. I did the logical thing and just forked FsPickler. Currently I am using a custom built version compiled off my pr https://github.com/mbraceproject/FsPickler/pull/81. Would be interesting to see how Akkling handles that.
+Turns out, FsPickler only takes concrete types into account when trying to find a pickler. So me registering the interface did nothing. I did the logical thing and just forked FsPickler. Currently I am using a custom built version compiled off my pr https://github.com/mbraceproject/FsPickler/pull/81. This version also takes pickler factories registered for interfaces into account when trying to find a pickler for a type. It works. Would be interesting to see how Akkling handles that.
 
+
+### Akka and Dispatchers and Deadlocks, great
+
+I may be the first to actually use Akka.net in a GUI application.
+
+C# has __pioneered__ a great feature to make working with concurrency and asynchronous APIs easier - async/await.
+
+Async/Await has a concept of a SynchronizationContext. The main use is for GUI applications, where you can only update the GUI from one Thread, so you need to make sure to go back to that thread after the async call returns.  
+The SynchronizationContext handles that for you.  
+Unfortunately, async/await automatically captures that context, unless you explicitly opt-out _each time_ with ``.ConfigureAwait(false)``.
+
+Which caused a nice Deadlock. Because Akka internally did not opt out. And so wanted to execute their internal code on my guid thread. Which was waiting for the Actor System.    
+``¯\_(ツ)_/¯``
+A workaround (move the outer call, that then itself calls into Akka into the ThreadPool) and my first PR against Akka (https://github.com/akkadotnet/akka.net/pull/2550) later, it worked.
+
+There is still an open issue, where Akka schedules continuations on the dedicated IO thread, which means that if you do ``await Ask()``, the code _after_ the await is executed on the Thread that is supposed to push the bits through the network pipe. If you want to deadlock the whole actor system, just do something like
+
+```
+var x = await actorRef.Ask(...);
+MessageBox.Show();
+```
+
+That will stop _any_ message from being processed.
+
+``¯\_(ツ)_/¯``
+
+Patient: > Doctor, it hurts if I do that.
+
+Doctor: > Then don't do that.
 
 ### Types or GTFO
 
@@ -128,16 +158,17 @@ Turns out, FsPickler only takes concrete types into account when trying to find 
 
 If you use F#, you want to use types. Akka is objectly-type.
 
-This is the basic C# example:
+This is a basic C# example:
+
 
 ```C#
     public class Greet
     {
-        public Greet(string who)
+        public Greet(string msg)
         {
-            Who = who;
+            Msg = msg;
         }
-        public string Who { get;private set; }
+        public string Msg { get;private set; }
     }
 
     public class GreetingActor : ReceiveActor
@@ -145,7 +176,7 @@ This is the basic C# example:
         public GreetingActor()
         {
             Receive<Greet>(greet =>
-               Console.WriteLine("Hello {0}", greet.Who));
+               Sender.Tell($"Hello {greet.Msg}.", Self);
         }
     }
 
@@ -160,11 +191,11 @@ This is the basic C# example:
             // This will be an "ActorRef", which is not a
             // reference to the actual actor instance
             // but rather a client or proxy to it.
-            var greeter = system.ActorOf<GreetingActor>("greeter");
+            IActorRef greeter = system.ActorOf<GreetingActor>("greeter");
 
             // Send a message to the actor
-            greeter.Tell(new Greet("World"));
-
+            var response = await greeter.Ask(new Greet("World"));
+            Console.WriteLine($"Response from actor: {response}");
             // This prevents the app from exiting
             // before the async work is done
             Console.ReadLine();
@@ -172,18 +203,33 @@ This is the basic C# example:
     }
 ```
 
-### Akka and Dispatchers and Deadlocks, great
+Before, my only actor experience was with Thespian. If you don't have any with that, it's API is similar to the F# MailboxProcessor.
 
-I may be the first to actually use Akka.net in a GUI application.
+You have typed ``ActorRefs<'T>``, and a really beautiful mechanism ``ReplyChannel<'T>``. The first time I saw that concept, it took a little bit to wrap my brain around it, but it is really simple, and statically type safe!
 
-C# has __pioneered__ a great feature to make working with concurrency and asynchronous APIs easier - async/await.
+So let's find the issues with the C# api:
+How many can you count?
 
-Async/Await has a concept of a SynchronizationContext. The main use is for GUI applications, where you can only update the GUI from one Thread, so you need to make sure to go back to that thread after the async call returns.  
-The SynchronizationContext handles that for you.  
-Unfortunately, async/await automatically captures that context, unless you explicitly opt-out _each time_ with ``.ConfigureAwait(false)``.
+...
+...
+...
 
-Which caused a nice Deadlock.  
-¯\_(ツ)_/¯
-A workaround (move the outer call, that then itself calls into Akka into the ThreadPool) and my first PR against Akka (https://github.com/akkadotnet/akka.net/pull/2550) later, it worked.
+
+1) Q: What messages can my IActorRef handle? The actor type is just ``ReceiveActor``, the ref is just ``IActorRef``.  
+   A: Who knows? Look at the source code of the actor. It can either handle all messages (``obj``), or register for specific ones with ``Receive<T>``. Also, the messages one concrete actor instance handles may change over time.
+
+2) Q: If I receive a message, and want to send something back, how do I know _where_ to send it back?  
+   A: Thats totally easy! There is a really convenient property ``Sender``, provided by Akka.  
+   Q: Great! Wait, how do I know what Messages I can send back?  
+   A: ... let's go back to Q1  
+   Q: How do I even know whether there is an actor on the other side? What about ``Tell``, which is fire and forget?  
+   A: ``¯\_(ツ)_/¯``
+
+3) Q: I have an IActorRef, and want to ``Ask`` it something, how do I know whether it will send something back, or if it sends something at all?  
+   A: take a look at Q2 again.
+
+#### Time to type this shit up
+
+
 
 _Go [back](index)_
