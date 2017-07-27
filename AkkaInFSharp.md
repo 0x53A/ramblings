@@ -1,4 +1,4 @@
-# Using Akka in F# in (almost) production
+# Using Akka with F# in (almost) production
 ------------
 
 _Go [back](index)_
@@ -13,7 +13,7 @@ I work at __[Precast Software Engineering](http://www.precast-software.com)__. W
 
 
 #### PLANBAR
-Planbar is a CAD specialized for precast. It is mostly developed in C++, but like many older applications out there it has amassed a large number of languages and technologies. C transpiled from FORTRAN, actual C, C++ used like C, actual C++, C#, MFC, Winforms, WPF, ... You can see it's history in it's different layers, beautiful like the rings in an old tree stump.
+Planbar is a CAD specialized for precast. It is mostly developed in C++, but like many older applications out there it has amassed a large number of languages and technologies. C transpiled from FORTRAN, actual C, C++ used like C, actual C++, C#, MFC, Winforms, WPF, ... You can see its history in its different layers, beautiful like the rings in an old tree stump.
 
 
 #### TIM
@@ -205,7 +205,7 @@ This is a basic C# example:
     }
 ```
 
-Before, my only actor experience was with Thespian. If you don't have any with that, it's API is similar to the F# MailboxProcessor.
+Before, my only actor experience was with Thespian. If you don't know it, its API is similar to the F# MailboxProcessor.
 
 You have typed ``ActorRefs<'T>``, and a really beautiful mechanism ``ReplyChannel<'T>``. The first time I saw that concept, it took a little bit to wrap my brain around it, but it is really simple, and statically type safe!
 
@@ -233,5 +233,14 @@ How many can you count?
 #### Time to type this shit up
 
 ``tomorrow``
+
+### Conclusion
+
+So, what is my conclusion? Akka sucks and I should have used REST?  
+Not at all. Sure, I'm picking on Akka and most of this post was pointing out its flaws, but I actually like the end result.
+Maybe it's stockholm.
+
+If I had to do another new development, I would choose REST for a public endpoint, and Akka for an internal endpoint.  
+All depending on the exact circumstances, of course.
 
 _Go [back](index)_
