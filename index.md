@@ -1,4 +1,6 @@
-Hello World
+0x53A's Ramblings
 -----------
 
-Go to the [first post](post1)
+### [Using Akka in F# in (almost) production](AkkaInFSharp)
+
+### Abusing MBrace for inter-process communication (later)
