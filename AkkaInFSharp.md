@@ -133,7 +133,7 @@ Async/Await has a concept of a SynchronizationContext. The main use is for GUI a
 The SynchronizationContext handles that for you.  
 Unfortunately, async/await automatically captures that context, unless you explicitly opt-out _each time_ with ``.ConfigureAwait(false)``.
 
-Which caused a nice Deadlock. Because Akka internally did not opt out. And so wanted to execute their internal code on my guid thread. Which was waiting for the Actor System.    
+Which caused a nice Deadlock. Because Akka internally did not opt out. And so wanted to execute their internal code on my gui thread. Which was waiting for the Actor System.    
 ``¯\_(ツ)_/¯``
 A workaround (move the outer call, that then itself calls into Akka into the ThreadPool) and my first PR against Akka (https://github.com/akkadotnet/akka.net/pull/2550) later, it worked.
 
