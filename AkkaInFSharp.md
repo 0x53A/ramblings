@@ -45,11 +45,11 @@ So we need an App-Service. There is one database, one App-Service, and many TIMs
 
 What the service should do was relatively clear, so the question was which technology to use.
 
-1) WCF
-2) REST over http, with JSON serialized data
-3) .Net Remoting
-4) MessageQueue, for example RabbitMq
-5) Actor, Akka.net
+1) WCF  
+2) REST over http, with JSON serialized data  
+3) .Net Remoting  
+4) MessageQueue, for example RabbitMq  
+5) Actor, Akka.net  
 
 So why choose Akka.net and not ...
 
@@ -133,8 +133,9 @@ Async/Await has a concept of a SynchronizationContext. The main use is for GUI a
 The SynchronizationContext handles that for you.  
 Unfortunately, async/await automatically captures that context, unless you explicitly opt-out _each time_ with ``.ConfigureAwait(false)``.
 
-Which caused a nice Deadlock. Because Akka internally did not opt out. And so wanted to execute their internal code on my gui thread. Which was waiting for the Actor System.    
+Which caused a nice Deadlock. Because Akka internally did not opt out. And so wanted to execute their internal code on my gui thread. Which was waiting for the Actor System.  
 ``¯\_(ツ)_/¯``
+
 A workaround (move the outer call, that then itself calls into Akka into the ThreadPool) and my first PR against Akka (https://github.com/akkadotnet/akka.net/pull/2550) later, it worked.
 
 There is still an open issue, where Akka schedules continuations on the dedicated IO thread, which means that if you do ``await Ask()``, the code _after_ the await is executed on the Thread that is supposed to push the bits through the network pipe. If you want to deadlock the whole actor system, just do something like
@@ -152,11 +153,12 @@ Patient: > Doctor, it hurts if I do that.
 
 Doctor: > Then don't do that.
 
+
 ### Types or GTFO
 
 > <insert something philosophical about types>
 
-If you use F#, you want to use types. Akka is objectly-type.
+If you use F#, you want to use types. Akka is objectly-typed.
 
 This is a basic C# example:
 
