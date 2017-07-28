@@ -311,7 +311,7 @@ type IActorRef<'T> with
 
 As I said before, I wanted a thin wrapper. That means I create the Actor using the normal Akka C# api, then pass it through ``asTyped<'T>``. From there on, it is type safe, but the asTyped method itself doesn't do any checks. You can easily get the underlying ActorRef back out, which is neccessary if you want to interact with any Akka functionality.
 
-Like Thespian, and unlike the F# mailbox, the reply channel can handle exceptions. That is great for RPC scenarios; if the request failed on the server, you can just pass back the exception, and the Task returned by Ask will fail. A little bit more about that [later](...)
+Like Thespian, and unlike the F# mailbox, the reply channel can handle exceptions. That is great for RPC scenarios; if the request failed on the server, you can just pass back the exception, and the Task returned by Ask will fail. A little bit more about that [later](#message-types-unions-and-exceptions)
 
 #### Task vs Async
 
