@@ -196,7 +196,7 @@ This is a basic C# example:
             IActorRef greeter = system.ActorOf<GreetingActor>("greeter");
 
             // Send a message to the actor
-            var response = await greeter.Ask(new Greet("World"));
+            string response = await greeter.Ask<string>(new Greet("World"));
             Console.WriteLine($"Response from actor: {response}");
             // This prevents the app from exiting
             // before the async work is done
