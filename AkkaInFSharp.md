@@ -346,6 +346,15 @@ If you code in F#, you don't need debugging anway, because _Types_ will solve al
 
 ``[[todo]]``
 
+#### Service Discovery
+
+``[[todo]]``
+
+tl;dr: The service starts itself up, connects to the database and writes the uri of an actor into a table.
+The clients read the uri, and connect to the system.
+
+So on both the app-service side and the client you only need to configure the database connection.
+
 
 ### Reality
 
