@@ -169,7 +169,7 @@ A workaround (move the outer call into the ThreadPool, from where it then calls 
 
 There is still an open issue, where Akka schedules continuations on the dedicated IO thread, which means that if you do ``await Ask()``, the code _after_ the await is executed on the Thread that is supposed to push the bits through the network pipe. If you want to deadlock the whole actor system, just do something like
 
-```
+```C#
 var x = await actorRef.Ask(...);
 MessageBox.Show();
 ```
@@ -322,7 +322,7 @@ The same pattern is used in the F# MailboxProcessor.
 This is the public Api that is implemented by my abstraction layer:
 
 
-```
+```F#
 type IActorRef<'T> =
     abstract member Tell : 'T -> unit
     abstract member Raw : IActorRef
