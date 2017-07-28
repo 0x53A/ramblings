@@ -7,7 +7,7 @@ __THIS IS CURRENTLY WORK IN PROGRESS__
 
 ### Preamble
 
-_Skip preamble and go to the [interesting part]([[todo]])_.
+_Skip preamble and go to the [interesting part](#app-service-implemented-in-akkanet-and-f-development-diary)_.
 
 I work at __[Precast Software Engineering](http://www.precast-software.com)__. We develop two products for the precast concrete industry, mostly for the factories themselves.
 
@@ -100,7 +100,7 @@ Further reasons we decided to use Actors and Akka:
 
 * the actor model seemed useful for other parts of the application
 * no explicit serialization, you can (with caveats) simply pass complete object graphs. Of couse we don't just blindly pass around our domain objects, but not having to manually define a protobuf schema (or having to annotate everything with an attribute) is a blessing.
-* [peer-to-peer]([[todo]]), location transparency. (With caveats) you don't care where the service is located, and whether it is in-proc or out of proc.
+* [peer-to-peer](#peer-to-peer), location transparency. (With caveats) you don't care where the service is located, and whether it is in-proc or out of proc.
 * open source, with companies actually using it.
 
 ##### To expand on the open-source part:
