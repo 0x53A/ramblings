@@ -30,10 +30,10 @@ So that multiple users don't trample on each other, a user needs to lock the dat
 
 ##### Issues
 
-1) The locks are saved in the database, causing additional churn.
-2) The locks are saved in a common table, making transactions a headache. If you lock something inside a transaction, the lock is not visible outside.
-3) If the application crashes, the locks stay in the database. If the same user reconnects, his locks are re-acquired and he can release them.
-4) If you go on vacation, but kept the program open, the locks are held until you return (or someone purges them from the database manually).
+1) The locks are saved in the database, causing additional churn.  
+2) The locks are saved in a common table, making transactions a headache. If you lock something inside a transaction, the lock is not visible outside.  
+3) If the application crashes, the locks stay in the database. If the same user reconnects, his locks are re-acquired and he can release them.  
+4) If you go on vacation, but kept the program open, the locks are held until you return (or someone purges them from the database manually).  
 5) The projects are locked way too long, anyway. Effectively, only one user can work with one project at a time. Which is not actually multi-user.
 
 
