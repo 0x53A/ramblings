@@ -227,7 +227,7 @@ How many can you count?
    Q: How do I even know whether there is an actor on the other side? What about ``Tell``, which is fire and forget?  
    A: ``¯\_(ツ)_/¯``
 
-3) Q: I have an IActorRef, and want to ``Ask`` it something, how do I know whether it will send something back, or if it sends something at all?  
+3) Q: I have an IActorRef, and want to ``Ask`` it something, how do I know what it will send back, or if it sends something at all?  
    A: take a look at Q2 again.
 
 #### Time to type this shit up
@@ -269,7 +269,7 @@ let response = ... // now you need to somehow get the response out of the receiv
 
 Well, it is typed, but is it easier? First of all, how do you spawn the ``receivingActor : IActorRef<string>``? And how do you get the response out of it?
 
-Akka handles this with the Ask pattern (``Task<T> Ask(this IActorRef, object msg)``. Under the hood, it spawns a temporary actor, it takes that actor's ref, and sets it as the sender. When the temp actor receives an answer, it completes the underlying Task.
+Akka handles this with the Ask pattern (``Task<T> Ask(this IActorRef, object msg)``. Under the hood, it spawns a temporary actor, then takes that actors ref, and sets it as the sender. When the temp actor receives an answer, it completes the underlying Task.
 
 
 Fortunately, for the typical Query-Response pattern, where you send a message, and want to receive one answer, you don't need this whole ceremony. There is already an established mechanism, the ``ReplyChannel``. Our code sample now becomes
@@ -286,7 +286,7 @@ let greetingActorRef : IActorRef<ActorMessage> = ...
 let! response = greetingActorRef.Ask (fun rc -> ActorMessage("World!", rc))
 ```
 
-Why the fun? In Akka, you can directly pass a message object to ``Ask``. But the reply channel is part of our message object! So we need the actual channel, before we can construct the message. Since the reply channel is constructed inside ``Ask``, we pass a callback, that is passed the channel and then constructs the message.
+Why the fun? In Akka, you can directly pass a message object to ``Ask``. But the reply channel is part of our message object! So we need the actual channel, before we can construct the message. Since the reply channel is constructed inside ``Ask``, we pass a callback, which is passed the channel and then constructs the message.
 
 The same pattern is used in the F# MailboxProcessor.
 
@@ -311,7 +311,7 @@ type IActorRef<'T> with
 
 As I said before, I wanted a thin wrapper. That means I create the Actor using the normal Akka C# api, then pass it through ``asTyped<'T>``. From there on, it is type safe, but the asTyped method itself doesn't do any checks. You can easily get the underlying ActorRef back out, which is neccessary if you want to interact with any Akka functionality.
 
-Like Thespian, and unlike the F# mailbox, the reply channel can handle exceptions. That is great for RPC scenarios; if the request failed on the server, you can just pass back the exception, and the Task returned by Ask will fail.
+Like Thespian, and unlike the F# mailbox, the reply channel can handle exceptions. That is great for RPC scenarios; if the request failed on the server, you can just pass back the exception, and the Task returned by Ask will fail. A little bit more about that [later](...)
 
 #### Task vs Async
 
@@ -327,6 +327,11 @@ So how does my actual code look like?
 
 ``[[todo]]``
 
+#### Message Types, Unions, and Exceptions
+
+My philosophy with regards to error handling was to use union types for expected errors (``Object already locked``), but exceptions for unexpected errors (``Sql server not found``). This means regardless of what happens on the server, the client will __always__ get a response back (well, as long as the network is not interrupted, anyway).
+
+I once had made an issue in an sql statement inside the actor on the server, but instead of the app-service process crashing, this mechanism meant that the Ask on the client threw an SqlException. __With a complete stacktrace from inside the server!__ Fixing bugs can't get easier than that.
 
 #### Location Transparency and Leaky Abstractions
 
