@@ -321,12 +321,6 @@ The unfortunate fact is that .Net uses Tasks. Async is great in F#, but if you w
 So instead of converting back and forth every time, I use [the awesome ``task`` ce from rspeele](https://github.com/rspeele/TaskBuilder.fs) and use
 Task everywhere. It's actually better than async/await in C#!
 
-### Reality
-
-So how does my actual code look like?
-
-``[[todo]]``
-
 #### Message Types, Unions, and Exceptions
 
 My philosophy with regards to error handling was to use union types for expected errors (``Object already locked``), but exceptions for unexpected errors (``Sql server not found``). This means regardless of what happens on the server, the client will __always__ get a response back (well, as long as the network is not interrupted, anyway).
@@ -350,6 +344,12 @@ But the truth is that you would need to think about it regardless of the technol
 
 If you code in F#, you don't need debugging anway, because _Types_ will solve all your issues, right? _Yeah..._
 
+``[[todo]]``
+
+
+### Reality
+
+So how does my actual code look like?
 
 ``[[todo]]``
 
