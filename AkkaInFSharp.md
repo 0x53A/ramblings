@@ -232,7 +232,97 @@ How many can you count?
 
 #### Time to type this shit up
 
-``tomorrow``
+The goal is to create a strongly typed abstraction layer above Akka. This layer should be as thin as possible; hiding Akka itself is an explicit non-goal.
+
+I took a quick look at both the official Akka F# api and [Akkling](https://github.com/Horusiath/Akkling), but my issue at that time was that they both hide too much.
+Both are almost complete replacements for the Akka Api, which means the C# tutorial and the C# code samples are basically useless.  
+Also, both use operators in place of ``Ask`` and ``Tell``. At first that sounds really great, and _functional_, but in my limited experience, operators are almost never a good idea. Methods can have optional parameters, and can be overloaded. Operators? How do I set a timeout? How do I pass a CancellationToken?
+
+Anyway, I decided to roll my own wrapper. Even now, this whole wrapper has less than 200 LOC.
+
+This wrapper fulfills two conditions:
+
+* ActorRefs are strongly typed
+* There are no implicit Sender references; everything is obvious from the Message type signature
+
+That means if you want to send a response, the sender must include his own address in the message he sends.
+
+The C# sample above could look like this then:
+
+```F#
+type ActorMessage = string * IActorRef<string>
+
+type GreetingActor() =
+    inherit ReceiveActor()
+    do base.Receive<ActorMessage>(fun ActorMessage(msg,sender) -> sender.Tell(sprintf "Hello %s" msg))
+...
+
+let greetingActorRef : IActorRef<ActorMessage> = ...
+let receivingActor : IActorRef<string> = ...
+greetingActorRef.Tell (ActorMessage("World!", receivingActor)
+
+let response = ... // now you need to somehow get the response out of the receivingActor
+```
+
+Well, it is typed, but is it easier? First of all, how do you spawn the ``receivingActor : IActorRef<string>``? And how do you get the response out of it?
+
+Akka handles this with the Ask pattern (``Task<T> Ask(this IActorRef, object msg)``. Under the hood, it spawns a temporary actor, it takes that actor's ref, and sets it as the sender. When the temp actor receives an answer, it completes the underlying Task.
+
+
+Fortunately, for the typical Query-Response pattern, where you send a message, and want to receive one answer, you don't need this whole ceremony. There is already an established mechanism, the ``ReplyChannel``. Our code sample now becomes
+
+```F#
+type ActorMessage = string * IReplyChannel<string>
+
+type GreetingActor() =
+    inherit ReceiveActor()
+    do base.Receive<ActorMessage>(fun ActorMessage(msg,rc) -> rc.ReplyWithValue(sprintf "Hello %s" msg))
+...
+
+let greetingActorRef : IActorRef<ActorMessage> = ...
+let! response = greetingActorRef.Ask (fun rc -> ActorMessage("World!", rc))
+```
+
+Why the fun? In Akka, you can directly pass a message object to ``Ask``. But the reply channel is part of our message object! So we need the actual channel, before we can construct the message. Since the reply channel is constructed inside ``Ask``, we pass a callback, that is passed the channel and then constructs the message.
+
+The same pattern is used in the F# MailboxProcessor.
+
+This is the public Api that is implemented by my abstraction layer:
+
+
+```
+type IActorRef<'T> =
+    abstract member Tell : 'T -> unit
+    abstract member Raw : IActorRef
+
+type IReplyChannel<'T> =
+    abstract member ReplyWithValue : 'T -> unit
+    abstract member ReplyWithException : exn -> unit
+    
+let asTyped<'T> (actor:IActorRef) : IActorRef<_> = ...
+
+type IActorRef<'T> with
+    
+    member self.Ask<'TResult> (cb:IReplyChannel<'TResult> -> 'T, ?ct, ?timeout) : Task<'TResult> = ...
+```
+
+As I said before, I wanted a thin wrapper. That means I create the Actor using the normal Akka C# api, then pass it through ``asTyped<'T>``. From there on, it is type safe, but the asTyped method itself doesn't do any checks. You can easily get the underlying ActorRef back out, which is neccessary if you want to interact with any Akka functionality.
+
+Like Thespian, and unlike the F# mailbox, the reply channel can handle exceptions. That is great for RPC scenarios; if the request failed on the server, you can just pass back the exception, and the Task returned by Ask will fail.
+
+#### Task vs Async
+
+Speaking about tasks, you may have noticed that I use Task, not Async in my version of Ask.
+The unfortunate fact is that .Net uses Tasks. Async is great in F#, but if you want (or need) to interact with the BCL, it is a pain.
+
+So instead of converting back and forth every time, I use [the awesome ``task`` ce from rspeele](https://github.com/rspeele/TaskBuilder.fs) and use
+Task everywhere. It's actually better than async/await in C#!
+
+#### Actual Implementation
+
+So how does my actual code look like?
+
+``[[todo]]``
 
 ### Conclusion
 
