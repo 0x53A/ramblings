@@ -1,12 +1,11 @@
 @font-face {
-    font-family: 'Berkeley Mono';
-    src: url('fonts/berkeleyMono-regular.woff2') format('woff2'),
-         url('fonts/berkeleyMono-regular.woff') format('woff'),
-         url('fonts/berkeleyMono-regular.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-  }
+  font-family: 'Berkeley Mono';
+  src: url('fonts/berkeleyMono-regular.woff2') format('woff2'),
+        url('fonts/berkeleyMono-regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
   
-  body {
-    font-family: 'Berkeley Mono', monospace;
-  }
+body {
+  font-family: 'Berkeley Mono', monospace;
+}

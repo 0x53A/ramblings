@@ -1,0 +1,68 @@
+<body style="font-family: 'Berkeley Mono', monospace;">
+    <h1>CuttleFiSh</h1>
+    <h3><i>Claude and Me, sitting in a tree, <strike>kissing</strike> writing a filesystem</i></h3>
+
+    <p>
+        The last few days I've started writing a filesystem in Rust.
+    </p>
+
+    <p><b>Why?</b> Well, I couldn't find anything *exactly* like it, and I had time on my hand.</p>
+
+    <p>
+        <b></b>What</b> is it supposed to do?
+
+        It should be an <b>encrypted</b>, <b>deduplicating</b> <b>overlay</b> fs.
+    </p>
+
+    <p>
+        Being an Overlay Filesystem means that instead of formatting a block device with your FS, you instead write your data to a folder structure inside of another, existing filesystem.
+        Encrypted is mostly self explanatory.
+        
+    </p>
+
+    <p>I used gocryptfs before but got weird corruption, besides, it only checks the <b><i>encrypted</i></b> box, not the <b><i>deduplicated</i></b>.</p>
+
+    <p>My setup is the following:
+       I have a cheap VPS at Hetzner (CAX11, 4.51€/Month). The VPS has only 40 GB of SSD storage, and adding another SSD volume directly is expensive, but I can mount a 1 TB <i>Storage Box</i> for 3,81€/Month.
+       Great! A reasonably powerful VPS with a TB of storage for less than 10€ per Month!
+       
+       It being a cloud storage, I didn't feel comfortable to just write my data directly onto the storage box. Instead I wanted to encrypt it at-rest.
+       Now, to be fair, since the VPS is also hosted in the cloud, if someone really wanted to, they could trivially extract the encryption key from the memory of the running VPS, but I'm not looking to defend against state level attackers, I just don't want a Hetzner Employee snooping around.
+
+       So, the setup is:
+       I have the VPS. The storage box is mounted through CIFS into the VPS. The cuttlefish-fs is then mounted on top of the storage box.
+    </p>
+
+    <p><b>How?</b>In Linux it's actually pretty easy to create a new filesystem; no need to create a new kernel driver or anything, just write a FUSE client, which is a normal program that communicates with the existing FUSE kernel driver to do the actual work.
+    It's not the most efficient way to do it, sine each operation will need to do multiple roundtrips through kernelmode and usermode, but who cares, I don't.
+
+    Naturally, I chose Rust to implement this (it's just the obvious choice for a filesystem) and found an existing FUSE crate in <a href="https://crates.io/crates/fuser">fuser</a> (<a href="https://github.com/cberner/fuser">GH</a>) by <a href="https://github.com/cberner">Christopher Berner</a>.
+
+    The repository contains a few samples, one of which, the "SimpleFS" is actually almost what I want and need: it's an overlay filesystem that creates two files on disk per <i>inode</i>, one for metadata, one for content.
+    Interestingly, the folder structure is <i><b>not</b></i> preserved, but instead everything is just referenced by <i>inode</i>.
+
+    That has also been one of my frustrations with all these encrypted filesystems. They *do* encrypt the filenames, but the folder structure is still mirrored.
+
+    <pre><code style="font-family: 'Berkeley Mono', monospace; font-size: 13px">
+docs/
+├── getting-started/
+│   ├── quickstart.md
+│   ├── installation.md
+│   └── configuration.md
+│
+├── api/
+│   ├── authentication.md
+│   ├── endpoints.md
+│   └── errors.md
+│
+└── tutorials/
+    ├── basic-usage.md
+    ├── advanced-usage.md
+    └── examples.md
+</code></pre>
+
+     my guess is that the corruption of my gocryptfs volume came because the path length of the underlying storage (storage box mounted through CIFS) was exceeded. While this would lift the primary blame from gocryptfs, it's still to blame because there's no reason to mirror the plain folderstructure into the encrypted folder.
+
+
+    </p>
+</body>
