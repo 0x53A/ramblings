@@ -15,8 +15,11 @@
     </p>
 
     <p>
-        Being an Overlay Filesystem means that instead of formatting a block device with your FS, you instead write your data to a folder structure inside of another, existing filesystem.
-        Encrypted is mostly self explanatory.
+        * Being an 'Overlay' Filesystem means that instead of formatting a naked block device with your FS, you instead write your data to a folder structure inside of another, existing filesystem.
+        <br />
+        * 'Encrypted' is mostly self explanatory.
+        <br />
+        * 'Deduplicating', well, if I save the same file multiple times, it should save the actual content only once and then only reference it the other times. That could also be solved by softlinks and/or hardlinks with a traditional FS. In addition, it would be great to also deduplicate *similar*
         
     </p>
 
@@ -44,20 +47,20 @@
     That has also been one of my frustrations with all these encrypted filesystems. They *do* encrypt the filenames, but the folder structure is still mirrored.
 
     <pre><code style="font-family: 'Berkeley Mono', monospace; font-size: 13px">
-docs/
-├── getting-started/
-│   ├── quickstart.md
+plain/
+├── documents/
+│   ├── taxes_2024.xlsx
 │   ├── installation.md
 │   └── configuration.md
 │
-├── api/
+├── images/
 │   ├── authentication.md
 │   ├── endpoints.md
 │   └── errors.md
 │
-└── tutorials/
-    ├── basic-usage.md
-    ├── advanced-usage.md
+└── music/
+    ├── Linkin Park/
+    ├── Billy Tallent/
     └── examples.md
 </code></pre>
 
